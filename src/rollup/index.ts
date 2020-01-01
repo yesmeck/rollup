@@ -28,7 +28,6 @@ import {
 	OutputOptions,
 	Plugin,
 	RollupBuild,
-	RollupCache,
 	RollupOutput,
 	RollupWatcher,
 	WarningHandler
@@ -160,7 +159,7 @@ function assignChunksToBundle(
 		const chunk = chunks[i];
 		const facadeModule = chunk.facadeModule;
 
-		outputBundle[chunk.id as string] = {
+		outputBundle[chunk.id!] = {
 			code: undefined as any,
 			dynamicImports: chunk.getDynamicImportIds(),
 			exports: chunk.getExportNames(),
@@ -201,7 +200,7 @@ export default async function rollup(rawInputOptions: GenericConfigObject): Prom
 		chunks = await graph.build(
 			inputOptions.input as string | string[] | Record<string, string>,
 			inputOptions.manualChunks,
-			inputOptions.inlineDynamicImports as boolean
+			inputOptions.inlineDynamicImports!
 		);
 	} catch (err) {
 		const watchFiles = Object.keys(graph.watchFiles);
@@ -265,7 +264,7 @@ export default async function rollup(rawInputOptions: GenericConfigObject): Prom
 				chunk.preRender(outputOptions, inputBase);
 			}
 			if (!optimized && inputOptions.experimentalOptimizeChunks) {
-				optimizeChunks(chunks, outputOptions, inputOptions.chunkGroupingSize as number, inputBase);
+				optimizeChunks(chunks, outputOptions, inputOptions.chunkGroupingSize!, inputBase);
 				optimized = true;
 			}
 			assignChunkIds(
@@ -281,7 +280,7 @@ export default async function rollup(rawInputOptions: GenericConfigObject): Prom
 
 			await Promise.all(
 				chunks.map(chunk => {
-					const outputChunk = outputBundleWithPlaceholders[chunk.id as string] as OutputChunk;
+					const outputChunk = outputBundleWithPlaceholders[chunk.id!] as OutputChunk;
 					return chunk
 						.render(outputOptions, addons, outputChunk, outputPluginDriver)
 						.then(rendered => {
@@ -318,7 +317,7 @@ export default async function rollup(rawInputOptions: GenericConfigObject): Prom
 
 	const cache = useCache ? graph.getCache() : undefined;
 	const result: RollupBuild = {
-		cache: cache as RollupCache,
+		cache: cache!,
 		generate: ((rawOutputOptions: GenericConfigObject) => {
 			const { outputOptions, outputPluginDriver } = getOutputOptionsAndPluginDriver(
 				rawOutputOptions
@@ -402,8 +401,7 @@ function createOutput(outputBundle: Record<string, OutputChunk | OutputAsset | {
 			.map(fileName => outputBundle[fileName])
 			.filter(outputFile => Object.keys(outputFile).length > 0) as (
 			| OutputChunk
-			| OutputAsset
-		)[]).sort((outputFileA, outputFileB) => {
+			| OutputAsset)[]).sort((outputFileA, outputFileB) => {
 			const fileTypeA = getSortingFileType(outputFileA);
 			const fileTypeB = getSortingFileType(outputFileB);
 			if (fileTypeA === fileTypeB) return 0;
@@ -418,10 +416,7 @@ function writeOutputFile(
 	outputOptions: OutputOptions,
 	outputPluginDriver: PluginDriver
 ): Promise<void> {
-	const fileName = resolve(
-		outputOptions.dir || dirname(outputOptions.file as string),
-		outputFile.fileName
-	);
+	const fileName = resolve(outputOptions.dir || dirname(outputOptions.file!), outputFile.fileName);
 	let writeSourceMapPromise: Promise<void>;
 	let source: string | Buffer;
 	if (outputFile.type === 'asset') {
@@ -468,8 +463,8 @@ function normalizeOutputOptions(
 		config: {
 			output: {
 				...rawOutputOptions,
-				...(rawOutputOptions.output as Object),
-				...(inputOptions.output as Object)
+				...(rawOutputOptions.output as object),
+				...(inputOptions.output as object)
 			}
 		}
 	});
